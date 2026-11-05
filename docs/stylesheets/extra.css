@@ -1,0 +1,69 @@
+:root {
+  --md-text-font: "Inter", sans-serif;
+}
+
+.hero {
+  margin: 0.5rem 0 2rem;
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+  border: 1px solid color-mix(in srgb, var(--md-primary-fg-color) 25%, transparent);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(ellipse at 90% 5%, color-mix(in srgb, var(--md-accent-fg-color) 22%, transparent), transparent 40%),
+    linear-gradient(135deg, color-mix(in srgb, var(--md-primary-fg-color) 12%, var(--md-default-bg-color)), var(--md-default-bg-color));
+  box-shadow: 0 1rem 2.5rem color-mix(in srgb, var(--md-primary-fg-color) 10%, transparent);
+}
+
+.hero h1 {
+  max-width: 14ch;
+  margin-top: 0;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.hero p {
+  max-width: 48rem;
+  font-size: 1.15rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.hero .md-button {
+  margin: 0.35rem 0.35rem 0 0;
+  border-radius: 0.65rem;
+}
+
+.grid.cards {
+  gap: 1rem;
+}
+
+.grid.cards > ul > li {
+  border-radius: 0.9rem;
+  box-shadow: 0 0.5rem 1.6rem color-mix(in srgb, var(--md-default-fg-color) 8%, transparent);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.grid.cards > ul > li:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.8rem 2rem color-mix(in srgb, var(--md-primary-fg-color) 16%, transparent);
+}
+
+.feature-icon {
+  margin-right: 0.35rem;
+  color: var(--md-accent-fg-color);
+  font-size: 1.35rem;
+}
+
+.md-typeset table:not([class]) {
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+
+.md-typeset table:not([class]) th {
+  background: color-mix(in srgb, var(--md-primary-fg-color) 12%, var(--md-default-bg-color));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid.cards > ul > li {
+    transition: none;
+  }
+}

@@ -1,0 +1,60 @@
+site_name: StudentHelper
+site_description: A bilingual student assistant for schedules, meetings, and homework.
+copyright: Copyright &copy; 2026 StudentHelper
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: installation.md
+      - Features: features.md
+  - Guides:
+      - Weekly schedule & homework: schedule.md
+      - Gemini API: gemini.md
+      - Meeting automation: playwright.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
