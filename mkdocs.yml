@@ -1,5 +1,6 @@
 site_name: StudentHelper
 site_description: A bilingual student assistant for schedules, meetings, and homework.
+site_url: https://yegor10.github.io/StudentHelper/
 copyright: Copyright &copy; 2026 StudentHelper
 
 theme:
@@ -41,7 +42,8 @@ nav:
   - Guides:
       - Weekly schedule & homework: schedule.md
       - Gemini API: gemini.md
-      - Meeting automation: playwright.md
+      - Meeting links: playwright.md
+  - Chrome extension: chrome-extension.md
 
 markdown_extensions:
   - admonition

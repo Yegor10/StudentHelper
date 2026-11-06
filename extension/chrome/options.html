@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StudentHelper — Налаштування</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="options-page">
+    <main class="options-card panel">
+      <p class="eyebrow">STUDENTHELPER</p>
+      <h1>Налаштування AI</h1>
+      <p class="muted">Ключ Gemini зберігається локально у сховищі розширення. Він не є зашифрованим сховищем секретів; не використовуй спільний або публічний профіль Chrome.</p>
+      <label class="field-label" for="gemini-key">Gemini API key</label>
+      <input id="gemini-key" type="password" autocomplete="off" placeholder="Встав власний ключ">
+      <label class="field-label" for="gemini-model">Модель Gemini</label>
+      <input id="gemini-model" type="text" value="gemini-2.5-flash">
+      <label class="field-label" for="appearance">Режим вигляду</label>
+      <select id="appearance">
+        <option value="System">Як у системі</option>
+        <option value="Light">Світлий</option>
+        <option value="Dark">Темний</option>
+      </select>
+      <label class="field-label" for="color-theme">Акцентний колір</label>
+      <select id="color-theme">
+        <option value="blue">Океанічний синій</option>
+        <option value="green">Свіжий зелений</option>
+        <option value="dark-blue">Темно-синій</option>
+      </select>
+      <div class="button-row">
+        <button id="save-settings" class="button button-primary">Зберегти</button>
+        <button id="clear-key" class="button button-secondary">Видалити ключ</button>
+      </div>
+      <p id="settings-status" class="status-line"></p>
+      <a class="text-link" href="dashboard.html">← Повернутися до StudentHelper</a>
+    </main>
+    <script src="options.js"></script>
+    <script src="theme.js"></script>
+  </body>
+</html>

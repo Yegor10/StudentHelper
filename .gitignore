@@ -1,4 +1,8 @@
 .env
+gen-lang-client-*.json
+*service-account*.json
+client_secret*.json
+*credentials*.json
 .venv/
 venv/
 __pycache__/

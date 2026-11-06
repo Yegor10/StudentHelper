@@ -1,18 +1,11 @@
-"""Schedule time calculation and asynchronous meeting automation."""
+"""Schedule time calculation and browser-link scheduling."""
 
 import asyncio
-import re
 import threading
 from datetime import date, datetime, time, timedelta
-from pathlib import Path
 from typing import Callable
 from urllib.parse import urlparse
-
-from playwright.async_api import (
-    Page,
-    TimeoutError as PlaywrightTimeoutError,
-    async_playwright,
-)
+import webbrowser
 
 from studenthelper.models import Lesson, ScheduledLesson
 from studenthelper.schedule_store import WEEKDAYS
@@ -61,121 +54,8 @@ def validate_meeting_url(url: str) -> bool:
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
-class PlaywrightMeetingAutomation:
-    """Keeps a signed-in Chromium profile alive for scheduled web meetings."""
-
-    def __init__(self, profile_path: Path | None = None) -> None:
-        self.profile_path = profile_path or (
-            Path.home() / ".studenthelper" / "browser-profile"
-        )
-        self._playwright = None
-        self._context = None
-        self._lock = asyncio.Lock()
-
-    async def prepare_and_join(self, url: str, notify: Callable[[str], None]) -> None:
-        if not validate_meeting_url(url):
-            raise ValueError("Meeting URL must be a valid http or https address.")
-        async with self._lock:
-            if self._context is None:
-                self.profile_path.mkdir(parents=True, exist_ok=True)
-                self._playwright = await async_playwright().start()
-                try:
-                    self._context = (
-                        await self._playwright.chromium.launch_persistent_context(
-                            str(self.profile_path),
-                            headless=False,
-                        )
-                    )
-                except Exception:
-                    await self._playwright.stop()
-                    self._playwright = None
-                    raise
-
-            page = await self._context.new_page()
-            notify("Opening meeting link…")
-            await page.goto(url, wait_until="domcontentloaded", timeout=60_000)
-            await self._try_join_in_browser(page)
-            await page.wait_for_load_state("domcontentloaded", timeout=15_000)
-            await self._ensure_device_off(
-                page,
-                r"(turn off|mute(?: my)?).*(microphone|mic|audio)|mute (?:my )?microphone|mute audio",
-                r"(turn on|unmute).*(microphone|mic|audio)|(microphone|mic|audio).*(off|muted)",
-                "microphone",
-            )
-            await self._ensure_device_off(
-                page,
-                r"(turn off|disable|stop).*(camera|video)|stop video",
-                r"(turn on|enable|start).*(camera|video)|(camera|video).*(off|disabled)",
-                "camera",
-            )
-            await self._click_join(page)
-            notify("Meeting joined with microphone and camera confirmed off.")
-
-    async def _try_join_in_browser(self, page: Page) -> None:
-        browser_join = page.get_by_role(
-            "button",
-            name=re.compile(r"join from (your )?browser", re.IGNORECASE),
-        )
-        if await browser_join.count():
-            await browser_join.first.click(timeout=5_000)
-            await page.wait_for_timeout(1_000)
-
-    async def _ensure_device_off(
-        self, page: Page, enabled_pattern: str, disabled_pattern: str, device: str
-    ) -> None:
-        disabled = page.get_by_role(
-            "button", name=re.compile(disabled_pattern, re.IGNORECASE)
-        )
-        if await disabled.count():
-            return
-        enabled = page.get_by_role(
-            "button", name=re.compile(enabled_pattern, re.IGNORECASE)
-        )
-        if await enabled.count():
-            try:
-                await enabled.first.click(timeout=3_000)
-            except PlaywrightTimeoutError:
-                raise RuntimeError(f"Could not turn off the meeting {device}.") from None
-            if await disabled.count():
-                return
-        raise RuntimeError(
-            f"Could not confirm the meeting {device} is off; "
-            "the meeting was not joined."
-        )
-
-    async def _click_join(self, page: Page) -> None:
-        join_button = page.get_by_role(
-            "button",
-            name=re.compile(
-                r"^(join now|join meeting|ask to join|join)$", re.IGNORECASE
-            ),
-        )
-        if await join_button.count():
-            await join_button.first.click(timeout=10_000)
-            return
-        join_link = page.get_by_role(
-            "link",
-            name=re.compile(r"^(join now|join meeting|join)$", re.IGNORECASE),
-        )
-        if await join_link.count():
-            await join_link.first.click(timeout=10_000)
-            return
-        raise RuntimeError(
-            "Could not find a recognized Join button. The meeting was not joined."
-        )
-
-    async def close(self) -> None:
-        async with self._lock:
-            if self._context is not None:
-                await self._context.close()
-                self._context = None
-            if self._playwright is not None:
-                await self._playwright.stop()
-                self._playwright = None
-
-
 class SchedulerService:
-    """Checks the daily schedule off the UI thread and opens due meetings."""
+    """Checks the daily schedule off the UI thread and opens meeting links."""
 
     def __init__(
         self,
@@ -210,46 +90,46 @@ class SchedulerService:
             self.notify(f"Scheduler stopped: {error}")
 
     async def _run(self) -> None:
-        automation = PlaywrightMeetingAutomation()
         handled: set[tuple[date, int]] = set()
-        try:
-            while not self._stop_event.is_set():
-                now = datetime.now().astimezone()
-                day = weekday_name(now.date())
-                if day is not None:
-                    try:
-                        start_time_value, lessons = self.get_day_schedule(day)
-                        start_time = datetime.strptime(
-                            start_time_value, "%H:%M"
-                        ).time()
-                    except ValueError:
-                        self.notify("Scheduler paused: start time must use HH:MM.")
-                        start_time = None
-                    if start_time is not None:
-                        for item in next_occurrences(lessons, start_time, now):
-                            lesson_id = item.lesson.id
-                            key = (item.starts_at.date(), lesson_id or item.lesson.position)
-                            if key in handled:
+        while not self._stop_event.is_set():
+            now = datetime.now().astimezone()
+            day = weekday_name(now.date())
+            if day is not None:
+                try:
+                    start_time_value, lessons = self.get_day_schedule(day)
+                    start_time = datetime.strptime(start_time_value, "%H:%M").time()
+                except ValueError:
+                    self.notify("Scheduler paused: start time must use HH:MM.")
+                    start_time = None
+                if start_time is not None:
+                    for item in next_occurrences(lessons, start_time, now):
+                        lesson_id = item.lesson.id
+                        key = (
+                            item.starts_at.date(),
+                            lesson_id or item.lesson.position,
+                        )
+                        if key in handled:
+                            continue
+                        open_at = item.starts_at - timedelta(minutes=1)
+                        if open_at <= now < item.starts_at:
+                            handled.add(key)
+                            if not item.lesson.meeting_url:
+                                self.notify(
+                                    f"'{item.lesson.title}' starts in 1 minute, "
+                                    "but has no meeting URL."
+                                )
                                 continue
-                            join_at = item.starts_at - timedelta(minutes=1)
-                            if join_at <= now < item.starts_at:
-                                handled.add(key)
-                                if not item.lesson.meeting_url:
-                                    self.notify(
-                                        f"'{item.lesson.title}' starts in 1 minute, "
-                                        "but has no meeting URL."
+                            try:
+                                if not webbrowser.open(item.lesson.meeting_url, new=2):
+                                    raise RuntimeError(
+                                        "The default browser could not open this link."
                                     )
-                                    continue
-                                self.notify(f"Preparing to join {item.lesson.title}.")
-                                try:
-                                    await automation.prepare_and_join(
-                                        item.lesson.meeting_url, self.notify
-                                    )
-                                except Exception as error:
-                                    self.notify(
-                                        f"Could not join '{item.lesson.title}': {error}"
-                                    )
-                        handled = {item for item in handled if item[0] >= now.date()}
-                await asyncio.to_thread(self._stop_event.wait, self.poll_seconds)
-        finally:
-            await automation.close()
+                                self.notify(
+                                    f"Opening meeting link for {item.lesson.title}."
+                                )
+                            except (OSError, RuntimeError) as error:
+                                self.notify(
+                                    f"Could not open link for '{item.lesson.title}': {error}"
+                                )
+                    handled = {item for item in handled if item[0] >= now.date()}
+            await asyncio.to_thread(self._stop_event.wait, self.poll_seconds)

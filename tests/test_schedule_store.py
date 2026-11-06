@@ -10,6 +10,27 @@ from studenthelper.schedule_store import ScheduleStore, WEEKDAYS
 
 
 class ScheduleStoreTests(unittest.TestCase):
+    def test_new_schedule_matches_the_extension_timetable(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        desktop_schedule = json.loads(
+            (root / "src" / "studenthelper" / "default-schedule.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        extension_schedule = json.loads(
+            (root / "extension" / "chrome" / "default-schedule.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(desktop_schedule, extension_schedule)
+
+    def test_new_schedule_uses_the_group_151_first_lesson(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = ScheduleStore(Path(directory) / "schedule.json")
+            start_time, monday_lessons = store.get_day("monday")
+            self.assertEqual(start_time, "08:00")
+            self.assertEqual(monday_lessons[0].title, "Фізика і астрономія")
+
     def test_weekday_schedules_and_preferences_survive_reopen(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "nested" / "schedule.json"
@@ -33,7 +54,10 @@ class ScheduleStoreTests(unittest.TestCase):
             start_time, monday_lessons = reopened.get_day("monday")
             self.assertEqual(start_time, "09:15")
             self.assertEqual(monday_lessons[0].title, "Math")
-            self.assertEqual(reopened.get_day("tuesday")[1], [])
+            self.assertEqual(
+                reopened.get_day("tuesday")[1][0].title,
+                "Громадянська освіта",
+            )
             self.assertEqual(reopened.get_preference("appearance", "System"), "Dark")
             self.assertEqual(reopened.get_preference("color_theme", "blue"), "green")
 

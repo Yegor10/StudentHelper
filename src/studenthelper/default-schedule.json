@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "weekdays": {
+    "monday": {
+      "start_time": "08:00",
+      "lessons": [
+        {"title": "Фізика і астрономія", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/nrn-wtuw-qih"},
+        {"title": "Українська література", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/aff-smyq-jvb"},
+        {"title": "Біологія і екологія", "duration_minutes": 80, "break_minutes": 0, "meeting_url": "https://meet.google.com/ugg-duai-gjb"}
+      ]
+    },
+    "tuesday": {
+      "start_time": "08:00",
+      "lessons": [
+        {"title": "Громадянська освіта", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/wbc-zgfx-ztx"},
+        {"title": "Українська мова", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "http://meet.google.com/igc-dumo-psm"},
+        {"title": "Зарубіжна література", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/jkd-invf-ssk"},
+        {"title": "Біологія і екологія", "duration_minutes": 80, "break_minutes": 0, "meeting_url": "https://meet.google.com/ugg-duai-gjb"}
+      ]
+    },
+    "wednesday": {
+      "start_time": "08:00",
+      "lessons": [
+        {"title": "Географія", "duration_minutes": 80, "break_minutes": 5, "meeting_url": ""},
+        {"title": "Англійська мова", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/den-fjka-ggv"},
+        {"title": "Хімія", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/eir-pews-miw"},
+        {"title": "Громадянська освіта", "duration_minutes": 80, "break_minutes": 0, "meeting_url": "https://meet.google.com/wbc-zgfx-ztx"}
+      ]
+    },
+    "thursday": {
+      "start_time": "08:00",
+      "lessons": [
+        {"title": "Інформатика", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/hkx-anvv-pvc"},
+        {"title": "Історія України", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/wbc-zgfx-ztx"},
+        {"title": "Фізична культура", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/cmo-vinh-qny"},
+        {"title": "Захист України", "duration_minutes": 80, "break_minutes": 0, "meeting_url": ""}
+      ]
+    },
+    "friday": {
+      "start_time": "08:00",
+      "lessons": [
+        {"title": "Математика", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/ofs-pftx-hef"},
+        {"title": "Хімія", "duration_minutes": 80, "break_minutes": 5, "meeting_url": "https://meet.google.com/eir-pews-miw"},
+        {"title": "Зарубіжна література", "duration_minutes": 80, "break_minutes": 0, "meeting_url": "https://meet.google.com/jkd-invf-ssk"}
+      ]
+    }
+  },
+  "preferences": {
+    "appearance": "Dark",
+    "color_theme": "blue"
+  }
+}

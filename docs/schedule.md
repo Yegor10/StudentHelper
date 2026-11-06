@@ -8,7 +8,7 @@
 4. Add lessons with a title, duration, break, and optional `https://` meeting URL.
 5. Press **Save schedule**. Valid changes are also saved when you switch weekdays, leave the Schedule screen, or close the app.
 
-Lesson start times are calculated from the first class and the durations and breaks before each lesson. The meeting scheduler checks only that weekday's plan. For a class with a meeting URL, it prepares the browser one minute before class.
+Lesson start times are calculated from the first class and the durations and breaks before each lesson. The meeting scheduler checks only that weekday's plan. For a class with a meeting URL, it opens the link in your default browser one minute before class. Join the call yourself and check your camera and microphone.
 
 ## Durable JSON storage
 

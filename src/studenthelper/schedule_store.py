@@ -21,16 +21,14 @@ class ScheduleStore:
         self.path = path or default_schedule_path()
         self.created_new = not self.path.exists()
         if not self.path.exists():
-            self._write(
-                {
-                    "version": 1,
-                    "weekdays": {
-                        day: {"start_time": "08:30", "lessons": []}
-                        for day in WEEKDAYS
-                    },
-                    "preferences": {"appearance": "System", "color_theme": "blue"},
-                }
-            )
+            bundled_schedule = Path(__file__).with_name("default-schedule.json")
+            try:
+                data = json.loads(bundled_schedule.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                raise RuntimeError(
+                    f"Could not load the bundled default schedule: {error}"
+                ) from error
+            self._write(data)
         self._read()
 
     def _read(self) -> dict:
@@ -75,7 +73,7 @@ class ScheduleStore:
         data = self._read()
         for day in WEEKDAYS:
             day_data = data["weekdays"].get(day, {})
-            if not day_data.get("lessons"):
+            if self.created_new or not day_data.get("lessons"):
                 day_data["start_time"] = start_time
                 day_data["lessons"] = [
                     {

@@ -18,17 +18,22 @@ class ConfigAndTranslationTests(unittest.TestCase):
                     api_key="test-key",
                     model="gemini-test",
                     language="uk",
+                    classroom_client_file="C:/credentials/oauth-client.json",
                 )
                 self.assertEqual(config.gemini_api_key, "test-key")
                 self.assertEqual(config.gemini_model, "gemini-test")
                 self.assertEqual(config.language, "uk")
+                self.assertEqual(
+                    config.classroom_client_file,
+                    "C:/credentials/oauth-client.json",
+                )
                 self.assertTrue(env_path.is_file())
 
     def test_scheduler_notifications_are_translated(self) -> None:
-        message = "Preparing to join Mathematics."
+        message = "Opening meeting link for Mathematics."
         self.assertEqual(
             translate_notification("uk", message),
-            "Підготовка до приєднання: Mathematics.",
+            "Відкриваємо посилання на зустріч: Mathematics.",
         )
 
 

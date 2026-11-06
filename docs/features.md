@@ -14,10 +14,14 @@ See your homework in a five-day calendar inspired by Google Calendar. Browse wee
 
 Ask Gemini for a detailed explanation when you are ready. The image and prompt are sent to Google only when you press **Solve with AI**. The resulting solution is stored alongside the task.
 
+## Use Google Classroom
+
+The desktop app and Chrome extension can both connect to Classroom, list active assignments by nearest deadline, attach a file from your PC, and turn in the work after an explicit confirmation. Turned-in, returned, and past-deadline assignments are excluded from the active list. Assignments due today without a specific time remain visible through the end of the day. The desktop app uses a Google OAuth client of type **Desktop app**; see [installation](installation.md).
+
 ## Choose a comfortable look
 
 Select **System**, **Light**, or **Dark** appearance. Pick the blue, green, or midnight-blue accent. Language, appearance, and accent are remembered locally.
 
 ## Open scheduled meetings
 
-When a saved meeting is near its scheduled start, StudentHelper opens it in a visible Playwright-controlled Chromium profile. Provider pages vary; see [meeting automation](playwright.md) for what is and is not automated.
+One minute before a scheduled class, StudentHelper opens the link in your regular browser. Join the call yourself and check camera and microphone settings. See [meeting links](playwright.md).

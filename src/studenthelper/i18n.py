@@ -6,8 +6,53 @@ TRANSLATIONS = {
         "schedule": "Schedule",
         "diary": "Diary",
         "settings": "Settings",
+        "classroom": "Google Classroom",
+        "classroom_title": "Google Classroom assignments",
+        "classroom_hint": "Review upcoming work, attach your file, and submit only after confirmation.",
+        "classroom_connect": "Connect Google",
+        "classroom_refresh": "Refresh assignments",
+        "classroom_connecting": "Connecting to Google…",
+        "classroom_loading": "Loading courses and assignments…",
+        "classroom_connected": "Google account connected.",
+        "classroom_loaded": "Loaded {count} active assignments.",
+        "classroom_not_connected": "Connect Google in Settings to load assignments.",
+        "classroom_empty": "No active assignments found.",
+        "classroom_select": "Select an assignment to see its details and submission options.",
+        "classroom_due_none": "No deadline",
+        "classroom_due": "Due {date}",
+        "classroom_missing_description": "No description was provided.",
+        "classroom_open": "Open in Google Classroom",
+        "classroom_attachments": "Current attachments",
+        "classroom_no_attachments": "No files attached yet.",
+        "classroom_choose_file": "Choose your work file",
+        "classroom_attach": "Attach file",
+        "classroom_attaching": "Uploading and attaching…",
+        "classroom_attached": "Attached: {name}",
+        "classroom_turn_in": "Review and turn in",
+        "classroom_turning_in": "Submitting…",
+        "classroom_turn_in_confirm": "Turn in “{title}” for “{course}”? Classroom will mark it as submitted.",
+        "classroom_submitted": "Classroom confirmed the submission.",
+        "classroom_ai_title": "Gemini homework help",
+        "classroom_ai_hint": "The assignment text is sent only when you request an explanation.",
+        "classroom_ai_explain": "Explain assignment",
+        "classroom_ai_working": "Gemini is preparing an explanation…",
+        "classroom_ai_download": "Save explanation as text",
+        "classroom_ai_empty": "Gemini returned no explanation.",
+        "classroom_oauth_title": "Google Classroom connection",
+        "classroom_oauth_hint": "Select the OAuth client JSON for a Desktop app in Settings, then connect from this page.",
+        "classroom_oauth_file": "OAuth Desktop app JSON",
+        "classroom_oauth_browse": "Choose JSON…",
+        "classroom_oauth_saved": "OAuth client file saved.",
+        "classroom_oauth_filter": "OAuth client JSON",
+        "classroom_attachment_failed": "The file was uploaded to Drive but Classroom could not attach it. Drive file: {link}. {error}",
+        "classroom_service_unavailable": "Google Classroom is temporarily unavailable (503). Try again in a minute.",
+        "classroom_due_today": "Today",
+        "classroom_due_tomorrow": "Tomorrow",
+        "classroom_count": "Active assignments",
+        "classroom_next_deadline": "Next deadline",
+        "classroom_no_deadline": "No upcoming deadline",
         "schedule_title": "Your class schedule",
-        "schedule_hint": "Set a daily start time. Meetings open one minute before class.",
+        "schedule_hint": "Set each day's start time. Meeting links open one minute before class; join from your browser.",
         "start_time": "First lesson starts at (HH:MM)",
         "lesson": "Lesson",
         "lesson_title": "Class name",
@@ -58,20 +103,65 @@ TRANSLATIONS = {
         "missing_gemini_key": "Gemini API key is missing. Add it in Settings before solving.",
         "empty_homework": "Add homework text or an image before solving.",
         "opening_link": "Opening meeting link…",
-        "meeting_joined": "Meeting joined with microphone and camera confirmed off.",
+        "meeting_opened": "Meeting link opened in your browser. Join manually and check your microphone and camera.",
         "scheduler_invalid_time": "Scheduler paused: start time must use HH:MM.",
         "scheduler_stopped": "Scheduler stopped: {error}",
-        "scheduler_preparing": "Preparing to join {title}.",
+        "scheduler_opening": "Opening the meeting link for {title}.",
         "scheduler_missing_url": "'{title}' starts in 1 minute, but has no meeting URL.",
-        "scheduler_join_error": "Could not join '{title}': {error}",
+        "scheduler_open_error": "Could not open the link for '{title}': {error}",
     },
     "uk": {
         "app_title": "StudentHelper",
         "schedule": "Розклад",
         "diary": "Щоденник",
         "settings": "Налаштування",
+        "classroom": "Google Classroom",
+        "classroom_title": "Завдання Google Classroom",
+        "classroom_hint": "Переглядай дедлайни, прикріплюй власні файли та здавай роботу лише після підтвердження.",
+        "classroom_connect": "Підключити Google",
+        "classroom_refresh": "Оновити завдання",
+        "classroom_connecting": "Підключаємо Google…",
+        "classroom_loading": "Завантажуємо курси та завдання…",
+        "classroom_connected": "Обліковий запис Google підключено.",
+        "classroom_loaded": "Завантажено активних завдань: {count}.",
+        "classroom_not_connected": "Щоб завантажити завдання, підключи Google в налаштуваннях.",
+        "classroom_empty": "Активних завдань не знайдено.",
+        "classroom_select": "Вибери завдання, щоб переглянути опис і варіанти здачі.",
+        "classroom_due_none": "Дедлайн не вказано",
+        "classroom_due": "Здати до {date}",
+        "classroom_missing_description": "Опис завдання відсутній.",
+        "classroom_open": "Відкрити в Google Classroom",
+        "classroom_attachments": "Поточні вкладення",
+        "classroom_no_attachments": "Файли ще не прикріплено.",
+        "classroom_choose_file": "Вибери файл зі своєю роботою",
+        "classroom_attach": "Прикріпити файл",
+        "classroom_attaching": "Завантажуємо та прикріплюємо…",
+        "classroom_attached": "Прикріплено: {name}",
+        "classroom_turn_in": "Перевірити й здати",
+        "classroom_turning_in": "Здаємо роботу…",
+        "classroom_turn_in_confirm": "Здати «{title}» у курсі «{course}»? Classroom позначить роботу як здану.",
+        "classroom_submitted": "Classroom підтвердив здавання роботи.",
+        "classroom_ai_title": "Допомога Gemini",
+        "classroom_ai_hint": "Текст завдання буде надіслано лише після запиту пояснення.",
+        "classroom_ai_explain": "Пояснити завдання",
+        "classroom_ai_working": "Gemini готує пояснення…",
+        "classroom_ai_download": "Зберегти пояснення як текст",
+        "classroom_ai_empty": "Gemini не повернув пояснення.",
+        "classroom_oauth_title": "Підключення Google Classroom",
+        "classroom_oauth_hint": "Вибери JSON OAuth-клієнта типу Desktop app у налаштуваннях, а потім підключи Google на цій сторінці.",
+        "classroom_oauth_file": "OAuth JSON для Desktop app",
+        "classroom_oauth_browse": "Вибрати JSON…",
+        "classroom_oauth_saved": "OAuth-файл збережено.",
+        "classroom_oauth_filter": "OAuth JSON",
+        "classroom_attachment_failed": "Файл завантажено на Drive, але не вдалося прикріпити його в Classroom. Файл Drive: {link}. {error}",
+        "classroom_service_unavailable": "Google Classroom тимчасово недоступний (503). Спробуй оновити завдання за хвилину.",
+        "classroom_due_today": "Сьогодні",
+        "classroom_due_tomorrow": "Завтра",
+        "classroom_count": "Активні завдання",
+        "classroom_next_deadline": "Найближчий дедлайн",
+        "classroom_no_deadline": "Дедлайн не вказано",
         "schedule_title": "Розклад занять",
-        "schedule_hint": "Вкажіть час початку дня. Зустріч відкриється за хвилину до заняття.",
+        "schedule_hint": "Вкажіть час початку дня. Посилання відкриється у звичайному браузері за хвилину до заняття.",
         "start_time": "Початок першого заняття (ГГ:ХХ)",
         "lesson": "Заняття",
         "lesson_title": "Назва заняття",
@@ -122,12 +212,12 @@ TRANSLATIONS = {
         "missing_gemini_key": "Не вказано ключ Gemini API. Додайте його в налаштуваннях.",
         "empty_homework": "Спочатку введіть завдання або додайте зображення.",
         "opening_link": "Відкриваємо посилання на зустріч…",
-        "meeting_joined": "Ви приєдналися до зустрічі з вимкненими мікрофоном і камерою.",
+        "meeting_opened": "Посилання відкрито у браузері. Приєднайся вручну та перевір мікрофон і камеру.",
         "scheduler_invalid_time": "Планувальник призупинено: час має бути у форматі ГГ:ХХ.",
         "scheduler_stopped": "Планувальник зупинено: {error}",
-        "scheduler_preparing": "Підготовка до приєднання: {title}.",
+        "scheduler_opening": "Відкриваємо посилання на зустріч: {title}.",
         "scheduler_missing_url": "За хвилину почнеться «{title}», але посилання не вказано.",
-        "scheduler_join_error": "Не вдалося приєднатися до «{title}»: {error}",
+        "scheduler_open_error": "Не вдалося відкрити посилання для «{title}»: {error}",
     },
 }
 
@@ -141,25 +231,25 @@ def translate(language: str, key: str) -> str:
 def translate_notification(language: str, message: str) -> str:
     if message == "Opening meeting link…":
         return translate(language, "opening_link")
-    if message == "Meeting joined with microphone and camera confirmed off.":
-        return translate(language, "meeting_joined")
+    if message == "Meeting link opened in your browser. Join manually and check your microphone and camera.":
+        return translate(language, "meeting_opened")
     if message == "Scheduler paused: start time must use HH:MM.":
         return translate(language, "scheduler_invalid_time")
     if message.startswith("Scheduler stopped: "):
         return translate(language, "scheduler_stopped").format(
             error=message.removeprefix("Scheduler stopped: ")
         )
-    if message.startswith("Preparing to join "):
-        title = message.removeprefix("Preparing to join ").removesuffix(".")
-        return translate(language, "scheduler_preparing").format(title=title)
+    if message.startswith("Opening meeting link for "):
+        title = message.removeprefix("Opening meeting link for ").removesuffix(".")
+        return translate(language, "scheduler_opening").format(title=title)
     if message.startswith("'") and message.endswith(
         "' starts in 1 minute, but has no meeting URL."
     ):
         title = message.split("'", 2)[1]
         return translate(language, "scheduler_missing_url").format(title=title)
-    if message.startswith("Could not join '") and "': " in message:
-        title, error = message[len("Could not join '") :].split("': ", 1)
-        return translate(language, "scheduler_join_error").format(
+    if message.startswith("Could not open link for '") and "': " in message:
+        title, error = message[len("Could not open link for '") :].split("': ", 1)
+        return translate(language, "scheduler_open_error").format(
             title=title, error=error
         )
     return message

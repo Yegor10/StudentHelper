@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StudentHelper</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="dashboard">
+    <header class="topbar">
+      <a class="brand" href="dashboard.html">
+        <span class="brand-mark">S</span>
+        <span><strong>StudentHelper</strong><small>Плануй. Навчайся. Встигай.</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Головна навігація">
+        <button class="nav-button active" data-view="schedule-view">Розклад</button>
+        <button class="nav-button" data-view="classroom-view">Google Classroom</button>
+      </nav>
+      <a class="settings-link" href="options.html" target="_blank">Налаштування</a>
+    </header>
+
+    <main>
+      <section id="schedule-view" class="view">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">151 ГРУПА · І ЗМІНА</p>
+            <h1>Тижневий розклад</h1>
+            <p class="muted">Заняття збережені у браузері. Посилання на Meet відкриваються за хвилину до пари.</p>
+          </div>
+          <span id="save-indicator" class="save-indicator">Зміни збережені</span>
+        </div>
+        <div id="weekday-tabs" class="weekday-tabs" role="tablist"></div>
+        <section class="schedule-panel panel">
+          <div class="schedule-toolbar">
+            <label class="start-time-control">
+              <span>Початок першої пари</span>
+              <input id="start-time" type="time" value="08:00">
+            </label>
+            <div class="button-row">
+              <button id="add-lesson" class="button button-secondary">＋ Додати пару</button>
+              <button id="save-schedule" class="button button-primary">Зберегти розклад</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="lesson-table">
+              <thead>
+                <tr><th>#</th><th>Предмет</th><th>Тривалість</th><th>Перерва</th><th>Посилання на урок</th><th></th></tr>
+              </thead>
+              <tbody id="lesson-rows"></tbody>
+            </table>
+          </div>
+          <p class="hint">Пари тривають 80 хвилин. Перерви між парами — 5 хвилин. Chrome відкриє вкладку зустрічі, але приєднатися потрібно самостійно.</p>
+        </section>
+      </section>
+
+      <section id="classroom-view" class="view hidden">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">ТВОЇ КУРСИ ТА РОБОТИ</p>
+            <h1>Google Classroom</h1>
+            <p class="muted">Обери завдання, додай готовий файл і перевір вкладення перед здаванням.</p>
+          </div>
+          <div class="button-row">
+            <button id="connect-classroom" class="button button-secondary">Підключити Google</button>
+            <button id="refresh-assignments" class="button button-primary">Оновити завдання</button>
+          </div>
+        </div>
+        <div id="classroom-status" class="callout">Щоб завантажити курси й роботи, підключи Google Classroom.</div>
+        <div class="classroom-layout">
+          <section class="panel assignment-panel">
+            <div class="section-heading">
+              <div><p class="eyebrow">CLASSROOM</p><h2>Завдання</h2></div>
+              <span id="assignment-count" class="count-pill">0</span>
+            </div>
+            <div id="assignment-list" class="assignment-list empty-state">Поки немає завантажених завдань.</div>
+          </section>
+          <section class="panel assignment-detail">
+            <div id="assignment-placeholder" class="empty-detail">
+              <div class="empty-icon">✦</div>
+              <h2>Вибери завдання</h2>
+              <p>Тут з’явиться опис, вкладення та інструменти для роботи.</p>
+            </div>
+            <div id="assignment-content" class="hidden">
+              <p id="assignment-course" class="eyebrow"></p>
+              <h2 id="assignment-title"></h2>
+              <p id="assignment-due" class="muted"></p>
+              <div id="assignment-description" class="assignment-description"></div>
+              <a id="open-assignment" class="text-link" target="_blank" rel="noreferrer">Відкрити завдання в Classroom ↗</a>
+              <div class="divider"></div>
+              <h3>Моя робота</h3>
+              <p class="muted small">Вибери готовий файл. Він буде завантажений у твій Google Drive та прикріплений до роботи.</p>
+              <input id="work-file" type="file" class="file-input">
+              <div id="attachment-status" class="attachment-status"></div>
+              <div class="button-row action-row">
+                <button id="attach-file" class="button button-secondary" disabled>Прикріпити файл</button>
+                <button id="turn-in" class="button button-primary" disabled>Перевірити й здати</button>
+              </div>
+              <div class="ai-box">
+                <div class="section-heading">
+                  <div><p class="eyebrow">ЗА БАЖАННЯМ</p><h3>Допомога Gemini</h3></div>
+                  <a class="text-link" href="options.html" target="_blank">Налаштувати</a>
+                </div>
+                <p class="muted small">AI може пояснити умову або підказати кроки. Результат не надсилається викладачу автоматично.</p>
+                <button id="ask-gemini" class="button button-ai">Пояснити завдання</button>
+                <pre id="ai-answer" class="ai-answer hidden"></pre>
+                <button id="download-answer" class="button button-secondary hidden">Завантажити пояснення як TXT</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+      <div id="toast" class="toast hidden" role="status"></div>
+    </main>
+    <script src="dashboard.js"></script>
+    <script src="theme.js"></script>
+  </body>
+</html>

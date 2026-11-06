@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "StudentHelper",
+  "version": "0.2.0",
+  "description": "A weekly study planner and Google Classroom helper.",
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Open StudentHelper",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "options_page": "options.html",
+  "permissions": [
+    "identity",
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://classroom.googleapis.com/*",
+    "https://www.googleapis.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "411370766360-41d1a6oh1hc9m89bafvq4o2k886pdlpp.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/classroom.courses.readonly",
+      "https://www.googleapis.com/auth/classroom.coursework.me",
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  }
+}

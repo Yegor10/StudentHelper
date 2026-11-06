@@ -1,13 +1,18 @@
 """CustomTkinter interface and application entry point."""
 
 import threading
+import webbrowser
+from collections.abc import Callable
+from dataclasses import replace
 from datetime import date, datetime
 from datetime import timedelta
 from pathlib import Path
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
+from typing import TypeVar
 
 import customtkinter as ctk
 
+from studenthelper.classroom import ClassroomAssignment, ClassroomService
 from studenthelper.config import ConfigManager
 from studenthelper.database import Database
 from studenthelper.diary import GeminiDiaryService
@@ -21,17 +26,33 @@ from studenthelper.schedule import (
 )
 from studenthelper.schedule_store import ScheduleStore, WEEKDAYS
 
+T = TypeVar("T")
+
 
 class StudentHelperApp(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
         self.config_manager = ConfigManager()
+        self.classroom = ClassroomService(self.config_manager)
+        self.classroom_assignments: list[ClassroomAssignment] = []
+        self.selected_classroom_assignment: ClassroomAssignment | None = None
+        self.classroom_ai_answer = ""
         self.database = Database()
         self.schedule_store = ScheduleStore()
         if self.schedule_store.created_new:
+            legacy_lessons = self.database.list_lessons()
+            legacy_start_time = self.database.get_setting(
+                "first_start_time", "08:30"
+            )
+        else:
+            legacy_lessons = []
+            legacy_start_time = "08:30"
+        if self.schedule_store.created_new and (
+            legacy_lessons or legacy_start_time != "08:30"
+        ):
             self.schedule_store.migrate_legacy_schedule(
-                self.database.list_lessons(),
-                self.database.get_setting("first_start_time", "08:30"),
+                legacy_lessons,
+                legacy_start_time,
             )
         self.language = self.config_manager.language
         self.appearance = self.schedule_store.get_preference("appearance", "System")
@@ -39,8 +60,8 @@ class StudentHelperApp(ctk.CTk):
         ctk.set_appearance_mode(self.appearance)
         ctk.set_default_color_theme(self.color_theme)
         self.title(self.t("app_title"))
-        self.geometry("1120x760")
-        self.minsize(820, 600)
+        self.geometry("1280x820")
+        self.minsize(980, 650)
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -77,7 +98,9 @@ class StudentHelperApp(ctk.CTk):
             text=self.t("sidebar_subtitle"),
             text_color=("gray45", "gray65"),
         ).grid(row=1, column=0, padx=20, pady=(0, 25), sticky="w")
-        for row, name in enumerate(("schedule", "diary", "settings"), start=2):
+        for row, name in enumerate(
+            ("schedule", "diary", "classroom", "settings"), start=2
+        ):
             ctk.CTkButton(
                 self.sidebar,
                 text=self.t(name),
@@ -114,6 +137,8 @@ class StudentHelperApp(ctk.CTk):
             self.build_schedule_view()
         elif name == "diary":
             self.build_diary_view()
+        elif name == "classroom":
+            self.build_classroom_view()
         else:
             self.build_settings_view()
 
@@ -600,11 +625,604 @@ class StudentHelperApp(ctk.CTk):
         except RuntimeError:
             pass
 
+    def build_classroom_view(self) -> None:
+        self.content.grid_columnconfigure(0, weight=1)
+        self.content.grid_rowconfigure(5, weight=1)
+        self.heading(
+            self.content,
+            self.t("classroom_title"),
+            self.t("classroom_hint"),
+        )
+
+        toolbar = ctk.CTkFrame(self.content, fg_color="transparent")
+        toolbar.grid(row=2, column=0, sticky="ew", pady=(2, 10))
+        self.classroom_connect_button = ctk.CTkButton(
+            toolbar,
+            text=self.t("classroom_connect"),
+            height=40,
+            corner_radius=10,
+            command=self.connect_classroom,
+        )
+        self.classroom_connect_button.pack(side="left", padx=(0, 10))
+        self.classroom_refresh_button = ctk.CTkButton(
+            toolbar,
+            text=self.t("classroom_refresh"),
+            height=40,
+            corner_radius=10,
+            command=self.refresh_classroom_assignments,
+        )
+        self.classroom_refresh_button.pack(side="left")
+
+        self.classroom_status = ctk.CTkLabel(
+            self.content,
+            text=self.t("classroom_not_connected"),
+            anchor="w",
+            text_color=("gray35", "gray75"),
+            corner_radius=10,
+            fg_color=("gray92", "gray17"),
+            padx=14,
+            pady=11,
+        )
+        self.classroom_status.grid(row=3, column=0, sticky="ew", pady=(0, 10))
+
+        summary = ctk.CTkFrame(self.content, fg_color="transparent")
+        summary.grid(row=4, column=0, sticky="ew", pady=(0, 10))
+        summary.grid_columnconfigure((0, 1), weight=1, uniform="classroom-summary")
+        self.classroom_count_value = self._classroom_metric(
+            summary, 0, self.t("classroom_count")
+        )
+        self.classroom_deadline_value = self._classroom_metric(
+            summary, 1, self.t("classroom_next_deadline")
+        )
+
+        workspace = ctk.CTkFrame(self.content, fg_color="transparent")
+        workspace.grid(row=5, column=0, sticky="nsew")
+        workspace.grid_columnconfigure(0, weight=2, uniform="classroom-pane")
+        workspace.grid_columnconfigure(1, weight=3, uniform="classroom-pane")
+        workspace.grid_rowconfigure(0, weight=1)
+
+        assignment_panel = ctk.CTkFrame(workspace, corner_radius=14)
+        assignment_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        assignment_panel.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            assignment_panel,
+            text=self.t("classroom"),
+            font=ctk.CTkFont(size=17, weight="bold"),
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=14, pady=(13, 8))
+        self.classroom_assignment_list = ctk.CTkScrollableFrame(
+            assignment_panel,
+            corner_radius=10,
+            height=460,
+        )
+        self.classroom_assignment_list.grid(
+            row=1, column=0, sticky="nsew", padx=8, pady=(0, 8)
+        )
+        assignment_panel.grid_rowconfigure(1, weight=1)
+
+        self.classroom_detail_panel = ctk.CTkScrollableFrame(
+            workspace, corner_radius=14
+        )
+        self.classroom_detail_panel.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+        self.classroom_detail_panel.grid_columnconfigure(0, weight=1)
+        self.render_classroom_assignments()
+        self.render_classroom_detail()
+
+    def open_classroom_link(self, url: str) -> None:
+        try:
+            if not webbrowser.open(url):
+                raise RuntimeError("The default browser could not open this link.")
+        except (OSError, RuntimeError) as error:
+            self.toast(str(error), error=True)
+
+    def _classroom_metric(
+        self, parent: ctk.CTkFrame, column: int, title: str
+    ) -> ctk.CTkLabel:
+        card = ctk.CTkFrame(parent, corner_radius=12)
+        card.grid(row=0, column=column, sticky="ew", padx=(0, 6) if column == 0 else (6, 0))
+        ctk.CTkLabel(
+            card,
+            text=title,
+            anchor="w",
+            text_color=("gray40", "gray70"),
+            font=ctk.CTkFont(size=11, weight="bold"),
+        ).pack(fill="x", padx=13, pady=(9, 0))
+        value = ctk.CTkLabel(
+            card,
+            text="—",
+            anchor="w",
+            font=ctk.CTkFont(size=17, weight="bold"),
+        )
+        value.pack(fill="x", padx=13, pady=(0, 9))
+        return value
+
+    def _format_classroom_due(
+        self, due_at: datetime | None, due_has_time: bool = True
+    ) -> str:
+        if due_at is None:
+            return self.t("classroom_due_none")
+        current_date = date.today()
+        if due_at.date() == current_date:
+            due_date = self.t("classroom_due_today")
+        elif due_at.date() == current_date + timedelta(days=1):
+            due_date = self.t("classroom_due_tomorrow")
+        else:
+            due_date = due_at.strftime("%d.%m.%Y")
+        formatted_date = (
+            f"{due_date} {due_at.strftime('%H:%M')}"
+            if due_has_time
+            else due_date
+        )
+        return self.t("classroom_due").format(date=formatted_date)
+
+    def render_classroom_assignments(self) -> None:
+        for child in self.classroom_assignment_list.winfo_children():
+            child.destroy()
+        self.classroom_count_value.configure(
+            text=str(len(self.classroom_assignments))
+        )
+        next_deadline = next(
+            (
+                assignment
+                for assignment in self.classroom_assignments
+                if assignment.due_at is not None
+            ),
+            None,
+        )
+        self.classroom_deadline_value.configure(
+            text=(
+                self._format_classroom_due(
+                    next_deadline.due_at, next_deadline.due_has_time
+                )
+                if next_deadline
+                else self.t("classroom_no_deadline")
+            )
+        )
+        if not self.classroom_assignments:
+            ctk.CTkLabel(
+                self.classroom_assignment_list,
+                text=self.t("classroom_empty"),
+                text_color=("gray40", "gray70"),
+                wraplength=310,
+            ).pack(fill="x", padx=10, pady=14)
+            return
+
+        for assignment in self.classroom_assignments:
+            selected = (
+                self.selected_classroom_assignment is not None
+                and assignment.course_id == self.selected_classroom_assignment.course_id
+                and assignment.coursework_id
+                == self.selected_classroom_assignment.coursework_id
+            )
+            card = ctk.CTkButton(
+                self.classroom_assignment_list,
+                text=f"{assignment.course_name}\n{assignment.title}\n"
+                f"{self._format_classroom_due(assignment.due_at, assignment.due_has_time)}",
+                anchor="w",
+                height=82,
+                corner_radius=10,
+                fg_color=("gray82", "#24485A") if selected else ("gray93", "gray18"),
+                text_color=("gray10", "gray92"),
+                hover_color=("gray86", "gray25"),
+                command=lambda item=assignment: self.select_classroom_assignment(item),
+            )
+            card.pack(fill="x", padx=5, pady=4)
+
+    def render_classroom_detail(self) -> None:
+        for child in self.classroom_detail_panel.winfo_children():
+            child.destroy()
+        assignment = self.selected_classroom_assignment
+        if assignment is None:
+            ctk.CTkLabel(
+                self.classroom_detail_panel,
+                text=self.t("classroom_select"),
+                text_color=("gray40", "gray70"),
+                wraplength=480,
+                justify="center",
+            ).grid(row=0, column=0, padx=30, pady=50)
+            return
+
+        ctk.CTkLabel(
+            self.classroom_detail_panel,
+            text=assignment.course_name.upper(),
+            text_color=("gray40", "gray70"),
+            anchor="w",
+            font=ctk.CTkFont(size=11, weight="bold"),
+        ).grid(row=0, column=0, sticky="ew", padx=18, pady=(16, 2))
+        ctk.CTkLabel(
+            self.classroom_detail_panel,
+            text=assignment.title,
+            anchor="w",
+            justify="left",
+            wraplength=550,
+            font=ctk.CTkFont(size=21, weight="bold"),
+        ).grid(row=1, column=0, sticky="ew", padx=18, pady=(0, 4))
+        ctk.CTkLabel(
+            self.classroom_detail_panel,
+            text=self._format_classroom_due(
+                assignment.due_at, assignment.due_has_time
+            ),
+            anchor="w",
+            text_color=("gray40", "gray70"),
+        ).grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 10))
+        description = ctk.CTkTextbox(
+            self.classroom_detail_panel,
+            height=110,
+            wrap="word",
+            corner_radius=10,
+        )
+        description.grid(row=3, column=0, sticky="ew", padx=14, pady=(0, 8))
+        description.insert(
+            "1.0", assignment.description or self.t("classroom_missing_description")
+        )
+        description.configure(state="disabled")
+        if assignment.alternate_link:
+            ctk.CTkButton(
+                self.classroom_detail_panel,
+                text=self.t("classroom_open"),
+                fg_color="transparent",
+                text_color=("gray20", "#8fd8cb"),
+                anchor="w",
+                command=lambda url=assignment.alternate_link: self.open_classroom_link(
+                    url
+                ),
+            ).grid(row=4, column=0, sticky="w", padx=14, pady=(0, 8))
+
+        ctk.CTkLabel(
+            self.classroom_detail_panel,
+            text=self.t("classroom_attachments"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            anchor="w",
+        ).grid(row=5, column=0, sticky="ew", padx=18, pady=(4, 2))
+        attachment_text = (
+            ", ".join(assignment.attachments)
+            if assignment.attachments
+            else self.t("classroom_no_attachments")
+        )
+        self.classroom_attachment_status = ctk.CTkLabel(
+            self.classroom_detail_panel,
+            text=attachment_text,
+            anchor="w",
+            justify="left",
+            wraplength=540,
+            text_color=("gray40", "gray70"),
+        )
+        self.classroom_attachment_status.grid(
+            row=6, column=0, sticky="ew", padx=18, pady=(0, 7)
+        )
+        file_row = ctk.CTkFrame(self.classroom_detail_panel, fg_color="transparent")
+        file_row.grid(row=7, column=0, sticky="ew", padx=14, pady=(0, 5))
+        file_row.grid_columnconfigure(0, weight=1)
+        self.classroom_file_path: str | None = None
+        self.classroom_file_label = ctk.CTkLabel(
+            file_row,
+            text=self.t("classroom_choose_file"),
+            anchor="w",
+            text_color=("gray40", "gray70"),
+        )
+        self.classroom_file_label.grid(row=0, column=0, sticky="ew", padx=(3, 8))
+        ctk.CTkButton(
+            file_row,
+            text=self.t("classroom_oauth_browse"),
+            width=120,
+            command=self.choose_classroom_work_file,
+        ).grid(row=0, column=1)
+        actions = ctk.CTkFrame(self.classroom_detail_panel, fg_color="transparent")
+        actions.grid(row=8, column=0, sticky="ew", padx=14, pady=(0, 10))
+        self.classroom_attach_button = ctk.CTkButton(
+            actions,
+            text=self.t("classroom_attach"),
+            command=self.attach_classroom_file,
+        )
+        self.classroom_attach_button.pack(side="left", padx=(0, 8))
+        self.classroom_turn_in_button = ctk.CTkButton(
+            actions,
+            text=self.t("classroom_turn_in"),
+            command=self.turn_in_classroom_assignment,
+            state="normal" if assignment.attachments else "disabled",
+        )
+        self.classroom_turn_in_button.pack(side="left")
+
+        ai_box = ctk.CTkFrame(self.classroom_detail_panel, corner_radius=11)
+        ai_box.grid(row=9, column=0, sticky="ew", padx=14, pady=(4, 14))
+        ai_box.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            ai_box,
+            text=self.t("classroom_ai_title"),
+            anchor="w",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 0))
+        ctk.CTkLabel(
+            ai_box,
+            text=self.t("classroom_ai_hint"),
+            anchor="w",
+            justify="left",
+            wraplength=500,
+            text_color=("gray40", "gray70"),
+        ).grid(row=1, column=0, sticky="ew", padx=12, pady=(2, 6))
+        self.classroom_ai_button = ctk.CTkButton(
+            ai_box,
+            text=self.t("classroom_ai_explain"),
+            command=self.explain_classroom_assignment,
+        )
+        self.classroom_ai_button.grid(
+            row=2, column=0, sticky="w", padx=12, pady=(0, 8)
+        )
+        self.classroom_ai_text = ctk.CTkTextbox(
+            ai_box, height=120, wrap="word", corner_radius=8
+        )
+        self.classroom_ai_text.grid(
+            row=3, column=0, sticky="ew", padx=10, pady=(0, 8)
+        )
+        if self.classroom_ai_answer:
+            self.classroom_ai_text.insert("1.0", self.classroom_ai_answer)
+        else:
+            self.classroom_ai_text.insert("1.0", self.t("classroom_ai_empty"))
+        self.classroom_ai_text.configure(state="disabled")
+        self.classroom_ai_download_button = ctk.CTkButton(
+            ai_box,
+            text=self.t("classroom_ai_download"),
+            command=self.download_classroom_explanation,
+            state="normal" if self.classroom_ai_answer else "disabled",
+        )
+        self.classroom_ai_download_button.grid(
+            row=4, column=0, sticky="w", padx=12, pady=(0, 10)
+        )
+
+    def select_classroom_assignment(
+        self, assignment: ClassroomAssignment
+    ) -> None:
+        self.selected_classroom_assignment = assignment
+        self.classroom_ai_answer = ""
+        self.render_classroom_assignments()
+        self.render_classroom_detail()
+
+    def connect_classroom(self) -> None:
+        self.classroom_status.configure(text=self.t("classroom_connecting"))
+        self._run_classroom_task(
+            self.classroom_connect_button,
+            self.t("classroom_connecting"),
+            self.classroom.connect,
+            self._classroom_connected,
+        )
+
+    def _classroom_connected(self, _result: object) -> None:
+        self.classroom_status.configure(text=self.t("classroom_connected"))
+        self.toast(self.t("classroom_connected"))
+        self.refresh_classroom_assignments()
+
+    def refresh_classroom_assignments(self) -> None:
+        self.classroom_status.configure(text=self.t("classroom_loading"))
+        self._run_classroom_task(
+            self.classroom_refresh_button,
+            self.t("classroom_loading"),
+            self.classroom.fetch_assignments,
+            self._classroom_assignments_loaded,
+        )
+
+    def _classroom_assignments_loaded(
+        self, assignments: list[ClassroomAssignment]
+    ) -> None:
+        selected_key = (
+            (
+                self.selected_classroom_assignment.course_id,
+                self.selected_classroom_assignment.coursework_id,
+            )
+            if self.selected_classroom_assignment
+            else None
+        )
+        self.classroom_assignments = assignments
+        self.selected_classroom_assignment = next(
+            (
+                item
+                for item in assignments
+                if selected_key == (item.course_id, item.coursework_id)
+            ),
+            None,
+        )
+        self.classroom_status.configure(
+            text=self.t("classroom_loaded").format(count=len(assignments))
+        )
+        self.render_classroom_assignments()
+        self.render_classroom_detail()
+
+    def _run_classroom_task(
+        self,
+        button: ctk.CTkButton,
+        busy_text: str,
+        operation: Callable[[], T],
+        on_success: Callable[[T], None],
+    ) -> None:
+        original_text = button.cget("text")
+        button.configure(text=busy_text, state="disabled")
+
+        def worker() -> None:
+            try:
+                result = operation()
+            except Exception as error:
+                self._post_to_ui(
+                    self._finish_classroom_task,
+                    button,
+                    original_text,
+                    None,
+                    error,
+                    on_success,
+                )
+            else:
+                self._post_to_ui(
+                    self._finish_classroom_task,
+                    button,
+                    original_text,
+                    result,
+                    None,
+                    on_success,
+                )
+
+        threading.Thread(
+            target=worker,
+            name="studenthelper-classroom",
+            daemon=True,
+        ).start()
+
+    def _finish_classroom_task(
+        self,
+        button: ctk.CTkButton,
+        original_text: str,
+        result: T | None,
+        error: Exception | None,
+        on_success: Callable[[T], None],
+    ) -> None:
+        try:
+            if button.winfo_exists():
+                button.configure(text=original_text, state="normal")
+        except RuntimeError:
+            return
+        if self.current_view != "classroom":
+            return
+        if error is not None:
+            message = str(error)
+            if "temporarily unavailable (503)" in message:
+                message = self.t("classroom_service_unavailable")
+            self.classroom_status.configure(text=message)
+            self.toast(message, error=True)
+            return
+        on_success(result)
+
+    def choose_classroom_work_file(self) -> None:
+        path = filedialog.askopenfilename(
+            title=self.t("classroom_choose_file"),
+            filetypes=[("All files", "*.*")],
+        )
+        if path:
+            self.classroom_file_path = path
+            self.classroom_file_label.configure(text=Path(path).name)
+
+    def attach_classroom_file(self) -> None:
+        assignment = self.selected_classroom_assignment
+        if assignment is None:
+            return
+        if not self.classroom_file_path:
+            self.toast(self.t("classroom_choose_file"), error=True)
+            return
+        path = Path(self.classroom_file_path)
+        self._run_classroom_task(
+            self.classroom_attach_button,
+            self.t("classroom_attaching"),
+            lambda: self.classroom.attach_file(assignment, path),
+            lambda name: self._classroom_file_attached(assignment, name),
+        )
+
+    def _classroom_file_attached(
+        self, assignment: ClassroomAssignment, name: str
+    ) -> None:
+        updated = replace(
+            assignment,
+            attachments=(*assignment.attachments, str(name)),
+        )
+        self._replace_classroom_assignment(updated)
+        self.classroom_status.configure(
+            text=self.t("classroom_attached").format(name=name)
+        )
+        self.toast(self.t("classroom_attached").format(name=name))
+
+    def _replace_classroom_assignment(
+        self, replacement: ClassroomAssignment
+    ) -> None:
+        self.classroom_assignments = [
+            replacement
+            if (
+                item.course_id == replacement.course_id
+                and item.coursework_id == replacement.coursework_id
+            )
+            else item
+            for item in self.classroom_assignments
+        ]
+        self.selected_classroom_assignment = replacement
+        self.render_classroom_assignments()
+        self.render_classroom_detail()
+
+    def turn_in_classroom_assignment(self) -> None:
+        assignment = self.selected_classroom_assignment
+        if assignment is None:
+            return
+        confirmed = messagebox.askyesno(
+            self.t("classroom_turn_in"),
+            self.t("classroom_turn_in_confirm").format(
+                title=assignment.title,
+                course=assignment.course_name,
+            ),
+            parent=self,
+        )
+        if not confirmed:
+            return
+        self._run_classroom_task(
+            self.classroom_turn_in_button,
+            self.t("classroom_turning_in"),
+            lambda: self.classroom.turn_in(assignment),
+            lambda _result: self._classroom_assignment_turned_in(assignment),
+        )
+
+    def _classroom_assignment_turned_in(
+        self, assignment: ClassroomAssignment
+    ) -> None:
+        self.classroom_assignments = [
+            item
+            for item in self.classroom_assignments
+            if (
+                item.course_id != assignment.course_id
+                or item.coursework_id != assignment.coursework_id
+            )
+        ]
+        self.selected_classroom_assignment = None
+        self.classroom_status.configure(text=self.t("classroom_submitted"))
+        self.render_classroom_assignments()
+        self.render_classroom_detail()
+        self.toast(self.t("classroom_submitted"))
+
+    def explain_classroom_assignment(self) -> None:
+        assignment = self.selected_classroom_assignment
+        if assignment is None:
+            return
+        prompt = (
+            f"Course: {assignment.course_name}\n"
+            f"Assignment: {assignment.title}\n\n{assignment.description}"
+        )
+        self._run_classroom_task(
+            self.classroom_ai_button,
+            self.t("classroom_ai_working"),
+            lambda: GeminiDiaryService(self.config_manager).solve(prompt),
+            self._classroom_ai_ready,
+        )
+
+    def _classroom_ai_ready(self, answer: str) -> None:
+        self.classroom_ai_answer = answer
+        self.render_classroom_detail()
+
+    def download_classroom_explanation(self) -> None:
+        if not self.classroom_ai_answer:
+            self.toast(self.t("classroom_ai_empty"), error=True)
+            return
+        path = filedialog.asksaveasfilename(
+            title=self.t("classroom_ai_download"),
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt")],
+            initialfile="studenthelper-explanation.txt",
+        )
+        if not path:
+            return
+        try:
+            Path(path).write_text(self.classroom_ai_answer, encoding="utf-8")
+        except OSError as error:
+            self.toast(str(error), error=True)
+            return
+        self.toast(self.t("saved"))
+
     def build_settings_view(self) -> None:
         self.content.grid_rowconfigure(0, weight=0)
         self.heading(self.content, self.t("settings_title"))
-        form = ctk.CTkFrame(self.content)
-        form.grid(row=2, column=0, sticky="new", pady=(12, 0))
+        form = ctk.CTkScrollableFrame(self.content)
+        form.grid(row=2, column=0, sticky="nsew", pady=(12, 0))
+        self.content.grid_rowconfigure(2, weight=1)
         form.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(form, text=self.t("language"), anchor="w").grid(
@@ -658,9 +1276,45 @@ class StudentHelperApp(ctk.CTk):
             )
         )
         self.color_theme_menu.grid(row=9, column=0, padx=16, sticky="w")
+        ctk.CTkLabel(
+            form,
+            text=self.t("classroom_oauth_file"),
+            anchor="w",
+        ).grid(row=10, column=0, padx=16, pady=(18, 5), sticky="ew")
+        oauth_row = ctk.CTkFrame(form, fg_color="transparent")
+        oauth_row.grid(row=11, column=0, padx=16, sticky="ew")
+        oauth_row.grid_columnconfigure(0, weight=1)
+        self.classroom_oauth_entry = ctk.CTkEntry(oauth_row)
+        if self.config_manager.classroom_client_file:
+            self.classroom_oauth_entry.insert(
+                0, self.config_manager.classroom_client_file
+            )
+        self.classroom_oauth_entry.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        ctk.CTkButton(
+            oauth_row,
+            text=self.t("classroom_oauth_browse"),
+            command=self.choose_classroom_oauth_file,
+        ).grid(row=0, column=1)
+        ctk.CTkLabel(
+            form,
+            text=self.t("classroom_oauth_hint"),
+            anchor="w",
+            justify="left",
+            wraplength=780,
+            text_color=("gray45", "gray65"),
+        ).grid(row=12, column=0, padx=16, pady=(6, 0), sticky="ew")
         ctk.CTkButton(
             form, text=self.t("save_settings"), command=self.save_settings
-        ).grid(row=10, column=0, padx=16, pady=20, sticky="w")
+        ).grid(row=13, column=0, padx=16, pady=20, sticky="w")
+
+    def choose_classroom_oauth_file(self) -> None:
+        path = filedialog.askopenfilename(
+            title=self.t("classroom_oauth_file"),
+            filetypes=[(self.t("classroom_oauth_filter"), "*.json")],
+        )
+        if path:
+            self.classroom_oauth_entry.delete(0, "end")
+            self.classroom_oauth_entry.insert(0, path)
 
     def apply_appearance(self, appearance: str) -> None:
         ctk.set_appearance_mode(appearance)
@@ -680,6 +1334,7 @@ class StudentHelperApp(ctk.CTk):
                 api_key=key or None,
                 model=self.model_entry.get(),
                 language=language,
+                classroom_client_file=self.classroom_oauth_entry.get(),
             )
         except (OSError, ValueError) as error:
             self.toast(str(error), error=True)
